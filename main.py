@@ -1,47 +1,42 @@
-import torch
-from transformers import AutoModelForSequenceClassification
+"""
+M4 GPU Demo - Command line interface.
+
+Example usage of HuggingFaceModelRunner for hallucination evaluation.
+"""
+
+from model_runner import HuggingFaceModelRunner
 
 
-def get_device() -> torch.device:
-    if torch.backends.mps.is_available():
-        print("MPS (Metal) backend available. Using GPU.")
-        return torch.device("mps")
-    print("MPS not available. Using CPU.")
-    return torch.device("cpu")
-
-
-def main() -> None:
-    device = get_device()
-
-    model_name = "vectara/hallucination_evaluation_model"
-    print(f"Loading model: {model_name}")
+def main():
+    # Initialize and load model
+    runner = HuggingFaceModelRunner()
     
-    # Load model with trust_remote_code=True for custom code
-    model = AutoModelForSequenceClassification.from_pretrained(
-        model_name,
-        trust_remote_code=True
-    )
-    model.to(device)
-
-    # Example: Evaluate factual consistency
-    # Premise: The source/evidence text
-    premise = "The M4 chip is Apple's latest processor, featuring advanced GPU capabilities and Neural Engine."
+    print(f"Device: {runner.device}")
+    print("Loading model...")
+    runner.load_model()
+    print("Model loaded!\n")
     
-    # Hypothesis: The generated text to evaluate
-    hypothesis = "The M4 chip includes a powerful GPU optimized for machine learning tasks."
-
-    # Use the model's predict() method with pairs of (premise, hypothesis)
-    pairs = [(premise, hypothesis)]
+    # Verify GPU
+    info = runner.verify_device()
+    print(f"GPU Available: {info['is_gpu']}")
+    print(f"Test Passed: {info['test_passed']}\n")
     
-    # The predict() method returns scores between 0 and 1
-    # 0 = not evidenced at all, 1 = fully supported
-    scores = model.predict(pairs)
-    score = scores[0].item()
-
-    print(f"\nPremise: {premise}")
-    print(f"Hypothesis: {hypothesis}")
-    print(f"\nFactual Consistency Score: {score:.4f}")
-    print(f"Interpretation: {'Factually consistent' if score > 0.5 else 'Potential hallucination detected'}")
+    # Example evaluations
+    examples = [
+        ("The M4 chip is Apple's latest processor with GPU.", "The M4 has a powerful GPU."),
+        ("The capital of France is Berlin.", "The capital of France is Paris."),
+        ("I am in California.", "I am in United States."),
+    ]
+    
+    print("Running pairwise evaluations:")
+    print("-" * 50)
+    
+    for sentence1, sentence2 in examples:
+        result = runner.evaluate(sentence1, sentence2)
+        print(f"Sentence 1: {sentence1}")
+        print(f"Sentence 2: {sentence2}")
+        print(f"Similarity Score: {result['score']:.4f} - {result['interpretation']}")
+        print("-" * 50)
 
 
 if __name__ == "__main__":

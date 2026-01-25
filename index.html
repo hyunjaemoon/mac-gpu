@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M4 GPU Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/sse.js"></script>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --surface: #111;
+            --surface-alt: #0d0d0d;
+            --border: #262626;
+            --muted: #525252;
+            --text: #d6d6d6;
+            --accent: #6ee7b7;
+            --accent-dim: #34d399;
+            --danger: #f87171;
+            --success: #4ade80;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
+            font-size: 13px;
+            font-weight: 400;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 24px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-top: 3px solid var(--accent);
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 28px 32px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .header h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #fff;
+        }
+
+        .header .tagline {
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .content { padding: 24px 32px 32px; }
+
+        .section {
+            margin-bottom: 28px;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section:last-of-type { border-bottom: none; margin-bottom: 0; }
+
+        .section h2 {
+            font-family: 'Syne', sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 6px;
+        }
+
+        input[type="text"],
+        textarea,
+        select {
+            font-family: inherit;
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 13px;
+            margin-bottom: 14px;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23525252' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 72px;
+        }
+
+        .btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+
+        button {
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 10px 18px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        button:hover {
+            border-color: var(--muted);
+            color: #fff;
+        }
+
+        button[type="submit"] {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        button[type="submit"]:hover {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        button.success {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        button.success:hover {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        button.secondary { color: var(--muted); }
+
+        .status {
+            padding: 14px 16px;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            font-size: 12px;
+            max-height: 140px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            color: var(--muted);
+        }
+
+        .gpu-dashboard {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1px;
+            margin-top: 14px;
+            background: var(--border);
+            border: 1px solid var(--border);
+        }
+
+        @media (max-width: 540px) {
+            .gpu-dashboard { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .metric {
+            background: var(--surface-alt);
+            padding: 14px;
+            text-align: center;
+        }
+
+        .metric .label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .metric .value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .gpu-status {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface-alt);
+        }
+
+        .gpu-status.active {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: var(--muted);
+            flex-shrink: 0;
+        }
+
+        .dot.live {
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .dot.live { animation: pulse 1.2s ease-in-out infinite; }
+
+        .gpu-tip {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 12px;
+        }
+
+        .gpu-tip code {
+            padding: 2px 6px;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            font-size: 10px;
+        }
+
+        .results {
+            padding: 18px 20px;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            margin-top: 16px;
+        }
+
+        .results p { margin-bottom: 8px; font-size: 12px; color: var(--muted); }
+        .results p:last-of-type { margin-bottom: 12px; }
+
+        .score {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 10px 0;
+            font-family: 'Syne', sans-serif;
+        }
+
+        .score.high { color: var(--accent); }
+        .score.low { color: var(--danger); }
+
+        .interp {
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            border-left: 3px solid;
+        }
+
+        .interp.good {
+            background: rgba(74, 222, 128, 0.08);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .interp.bad {
+            background: rgba(248, 113, 113, 0.08);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .htmx-indicator { display: none; }
+        .htmx-request .htmx-indicator { display: inline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Hugging Face Model Runner</h1>
+            <span class="tagline">for Apple Silicon GPU (MPS backend)</span>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2>Model</h2>
+                <form hx-post="/load" hx-target="#status" hx-swap="innerHTML">
+                    <label>Model</label>
+                    <select name="model_name" id="model-selector">
+                        <option value="cross-encoder/stsb-roberta-large" selected>cross-encoder/stsb-roberta-large (STS-B, Large)</option>
+                        <option value="cross-encoder/stsb-distilroberta-base">cross-encoder/stsb-distilroberta-base (STS-B, Base)</option>
+                        <option value="cross-encoder/ms-marco-MiniLM-L-6-v2">cross-encoder/ms-marco-MiniLM-L-6-v2 (MS MARCO, Fast)</option>
+                        <option value="cross-encoder/ms-marco-MiniLM-L-12-v2">cross-encoder/ms-marco-MiniLM-L-12-v2 (MS MARCO, Balanced)</option>
+                        <option value="cross-encoder/nli-deberta-v3-base">cross-encoder/nli-deberta-v3-base (NLI, Base)</option>
+                        <option value="cross-encoder/nli-deberta-v3-large">cross-encoder/nli-deberta-v3-large (NLI, Large)</option>
+                    </select>
+                    <div class="btn-row">
+                        <button type="submit" class="success">
+                            Load <span class="htmx-indicator">...</span>
+                        </button>
+                        <button type="button" hx-get="/verify" hx-target="#status" hx-swap="innerHTML" class="secondary">
+                            Verify device
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="section">
+                <h2>GPU monitor <span style="font-weight: 400; letter-spacing: 0;">· live</span></h2>
+                <div hx-ext="sse" sse-connect="/gpu-stream" sse-swap="message">
+                    <div class="gpu-status">
+                        <span class="dot"></span>
+                        <span>Connecting…</span>
+                    </div>
+                    <div class="gpu-dashboard">
+                        <div class="metric"><div class="label">Samples</div><div class="value">—</div></div>
+                        <div class="metric"><div class="label">Duration</div><div class="value">—</div></div>
+                        <div class="metric"><div class="label">Avg Power</div><div class="value">—</div></div>
+                        <div class="metric"><div class="label">Min Power</div><div class="value">—</div></div>
+                        <div class="metric"><div class="label">Max Power</div><div class="value">—</div></div>
+                    </div>
+                </div>
+                <p class="gpu-tip">
+                    <code>sudo ./run_ui.sh</code> for Avg/Min/Max power. Samples and duration work either way.
+                </p>
+            </div>
+
+            <div class="section">
+                <h2>Status</h2>
+                <div class="status" id="status">Ready. Click Load to begin.</div>
+            </div>
+
+            <div class="section">
+                <h2>Evaluate</h2>
+                <form hx-post="/evaluate" hx-target="#results" hx-swap="innerHTML">
+                    <label>Sentence 1</label>
+                    <textarea name="sentence1">The M4 chip is Apple's latest processor with advanced GPU capabilities.</textarea>
+                    <label>Sentence 2</label>
+                    <textarea name="sentence2">The M4 chip includes a powerful GPU for machine learning.</textarea>
+                    <div class="btn-row">
+                        <button type="submit">
+                            Evaluate <span class="htmx-indicator">...</span>
+                        </button>
+                        <button type="button" class="secondary" onclick="this.form.reset()">Clear</button>
+                    </div>
+                </form>
+                <div id="results"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

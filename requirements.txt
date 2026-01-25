@@ -1,0 +1,11 @@
+# Core dependencies for HuggingFace Model Runner
+torch>=2.0.0
+transformers>=4.30.0
+datasets>=2.12.0
+sentence-transformers>=2.2.0
+
+# Web UI dependencies
+flask>=2.3.0
+
+# Optional: For better performance and package management
+# uv>=0.1.0  # Install separately: curl -LsSf https://astral.sh/uv/install.sh | sh
