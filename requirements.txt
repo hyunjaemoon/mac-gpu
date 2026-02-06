@@ -7,5 +7,16 @@ sentence-transformers>=2.2.0
 # Web UI dependencies
 flask>=2.3.0
 
+# Video generation (SDXL + Wan 2.2 TikTok-style video generator)
+# Wan 2.2 support requires diffusers from main (PyPI may lag)
+diffusers @ git+https://github.com/huggingface/diffusers
+accelerate>=0.25.0
+sentencepiece>=0.1.99
+protobuf>=3.20.0
+ftfy>=6.1.0
+imageio[ffmpeg]>=2.31.0
+numpy>=1.24.0
+Pillow>=9.5.0
+
 # Optional: For better performance and package management
 # uv>=0.1.0  # Install separately: curl -LsSf https://astral.sh/uv/install.sh | sh
